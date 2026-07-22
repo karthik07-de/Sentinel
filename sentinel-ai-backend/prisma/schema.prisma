@@ -1,0 +1,351 @@
+// Sentinel AI - Prisma Schema (SQLite for local dev)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  emailVerified       Boolean   @default(false)
+  emailVerifyToken    String?
+  emailVerifyExpiry   DateTime?
+  name                String
+  avatar              String?
+  role                String    @default("USER")
+  plan                String    @default("FREE")
+  passwordHash        String?
+  passwordResetToken  String?
+  passwordResetExpiry DateTime?
+  cyberScore          Int       @default(50)
+  streak              Int       @default(0)
+  lastScanAt          DateTime?
+  lastActiveAt        DateTime  @default(now())
+  isMfaEnabled        Boolean   @default(false)
+  mfaSecret           String?
+  isActive            Boolean   @default(true)
+  deletedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  sessions         Session[]
+  refreshTokens    RefreshToken[]
+  urlScans         URLScan[]
+  emailScans       EmailScan[]
+  screenshotScans  ScreenshotScan[]
+  qrScans          QRScan[]
+  notifications    Notification[]
+  conversations    Conversation[]
+  reports          Report[]
+  subscription     Subscription?
+  usage            Usage?
+  auditLogs        AuditLog[]
+  achievements     UserAchievement[]
+
+  @@index([email])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  userAgent String?
+  ipAddress String?
+  isActive  Boolean  @default(true)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  userAgent String?
+  ipAddress String?
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model URLScan {
+  id               String   @id @default(cuid())
+  userId           String
+  url              String
+  domain           String?
+  ipAddress        String?
+  serverLocation   String?
+  registrationDate String?
+  riskScore        Int      @default(0)
+  severity         String   @default("SAFE")
+  verdict          String   @default("UNKNOWN")
+  sslStatus        Boolean?
+  threats          String?
+  indicators       String?
+  aiExplanation    String?
+  recommendations  String?
+  redirectChain    String?
+  malwareEngines   Int?
+  totalEngines     Int?
+  virusTotalData   String?
+  status           String   @default("PENDING")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("url_scans")
+}
+
+model EmailScan {
+  id                   String   @id @default(cuid())
+  userId               String
+  rawContent           String?
+  sender               String?
+  senderDomain         String?
+  subject              String?
+  spfStatus            String?
+  dkimStatus           String?
+  dmarcStatus          String?
+  spoofScore           Int      @default(0)
+  urgencyScore         Int      @default(0)
+  emotionScore         Int      @default(0)
+  impersonationScore   Int      @default(0)
+  suspiciousLinksScore Int      @default(0)
+  riskScore            Int      @default(0)
+  severity             String   @default("SAFE")
+  verdict              String   @default("UNKNOWN")
+  threats              String?
+  indicators           String?
+  aiSummary            String?
+  recommendations      String?
+  extractedLinks       String?
+  status               String   @default("PENDING")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  deletedAt            DateTime?
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("email_scans")
+}
+
+model ScreenshotScan {
+  id              String   @id @default(cuid())
+  userId          String
+  imageUrl        String?
+  imageKey        String?
+  imageName       String?
+  imageSize       Int?
+  imageMimeType   String?
+  ocrText         String?
+  detectedThreats String?
+  extractedUrls   String?
+  riskScore       Int      @default(0)
+  severity        String   @default("SAFE")
+  verdict         String   @default("UNKNOWN")
+  analysis        String?
+  aiSummary       String?
+  recommendations String?
+  hasFakeLogin    Boolean  @default(false)
+  hasBrandSpoof   Boolean  @default(false)
+  status          String   @default("PENDING")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("screenshot_scans")
+}
+
+model QRScan {
+  id              String   @id @default(cuid())
+  userId          String
+  imageUrl        String?
+  imageKey        String?
+  imageName       String?
+  decodedData     String?
+  payloadType     String?
+  riskScore       Int      @default(0)
+  severity        String   @default("SAFE")
+  verdict         String   @default("UNKNOWN")
+  analysis        String?
+  findings        String?
+  recommendations String?
+  isSafe          Boolean?
+  status          String   @default("PENDING")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("qr_scans")
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String    @default("New conversation")
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([userId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  role           String
+  content        String
+  tokenCount     Int?
+  modelUsed      String?
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  severity  String?
+  metadata  String?
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
+}
+
+model Report {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  format      String    @default("PDF")
+  status      String    @default("GENERATING")
+  fileUrl     String?
+  fileKey     String?
+  fileSize    Int?
+  metadata    String?
+  generatedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("reports")
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  plan                 String    @default("FREE")
+  status               String    @default("ACTIVE")
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Usage {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  urlScansToday   Int      @default(0)
+  emailScansToday Int      @default(0)
+  qrScansToday    Int      @default(0)
+  totalScans      Int      @default(0)
+  threatsBlocked  Int      @default(0)
+  urlsScanned     Int      @default(0)
+  emailsAnalyzed  Int      @default(0)
+  imagesTotal     Int      @default(0)
+  qrCodesScanned  Int      @default(0)
+  lastResetDate   DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("usage")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  metadata  String?
+  ipAddress String?
+  userAgent String?
+  success   Boolean  @default(true)
+  errorMsg  String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Achievement {
+  id               String            @id @default(cuid())
+  slug             String            @unique
+  title            String
+  description      String
+  icon             String
+  threshold        Int               @default(1)
+  isActive         Boolean           @default(true)
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
