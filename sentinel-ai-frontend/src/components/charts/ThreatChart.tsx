@@ -41,10 +41,15 @@ const CustomTooltip = ({
   return null;
 };
 
-export function ThreatChart() {
+interface ThreatChartProps {
+  data?: Array<{ date: string; threats: number; scans: number; safe: number }>;
+}
+
+export function ThreatChart({ data }: ThreatChartProps) {
+  const chartData = data && data.length > 0 ? data : MOCK_CHART_DATA;
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <AreaChart data={MOCK_CHART_DATA} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+      <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
         <defs>
           <linearGradient id="threatGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3} />
